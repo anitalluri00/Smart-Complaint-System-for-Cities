@@ -1,1 +1,49 @@
+version: '3.8'
 
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: civic_complaints
+      POSTGRES_USER: civic_admin
+      POSTGRES_PASSWORD: secure_password_123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - civic_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U civic_admin -d civic_complaints"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: civic_complaints
+      DB_USER: civic_admin
+      DB_PASSWORD: secure_password_123
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      KAGGLE_USERNAME: ${KAGGLE_USERNAME}
+      KAGGLE_KEY: ${KAGGLE_KEY}
+    volumes:
+      - ./static:/app/static
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - civic_network
+
+volumes:
+  postgres_data:
+
+networks:
+  civic_network:
+    driver: bridge
